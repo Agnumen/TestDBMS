@@ -1,17 +1,16 @@
-import asyncio
 import logging
-# import os.path
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
-from aiogram.fsm.storage.memory import MemoryStorage
+# from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
+from app.bot.handlers import user_router, admin_router, others_router, settings_router
+from app.bot.middlewares import TranslatorMiddleware, DatabaseMiddleware, ShadowBanMiddleware, LangSettingsMiddleware, ActivityCounterMiddleware
 from app.bot.i18n import get_translations
-from app.bot.handlers import others, user
-from app.bot.middlewares import TranslatorMiddleware
+from app.bot.utils import validate
 
 from config import Settings
 # Инициализируем логгер
@@ -48,11 +47,10 @@ async def main(config: Settings):
     # Инициализируем другие объекты (пул соединений с БД, кеш и т.п.)
     # Инициализируем движок и сессию для работы с базой данных
 
-    engine = create_async_engine(url=config.get_db_url()) # , echo=True)
-    session = async_sessionmaker(engine, expire_on_commit=False)
+    DATABASE_URL = config.get_db_url()
 
-    # Настраиваем главное меню бота
-    # await set_main_menu(bot)
+    engine = create_async_engine(url=DATABASE_URL)#, echo=True)
+    async_session_maker = async_sessionmaker(bind=engine, expire_on_commit=False, class_=AsyncSession)
     
     # Получаем словарь с переводами
     translations = get_translations()
@@ -61,7 +59,7 @@ async def main(config: Settings):
 
     # Помещаем нужные объекты в workflow_data диспетчера
     dp.workflow_data.update({
-        "admin_ids": config.BOT_ADMIN_IDS,
+        "admin_ids": validate(config.BOT_ADMIN_IDS),
         "provider_token": config.BOT_PAYMENT_TOKEN,
         "translations": translations,
         "locales": locales,
@@ -70,16 +68,14 @@ async def main(config: Settings):
     
     # Подключаем роутеры в нужном порядке
     logger.info("Including routers...")
-    # dp.include_routers(settings_router, admin_router, user_router, others_router)
-    dp.include_router(user.user_router)
-    dp.include_router(others.others_router)
+    dp.include_routers(settings_router, admin_router, user_router, others_router)
 
     # Подключаем миддлвари в нужном порядке
     logger.info("Including middlewares...")
-    # dp.update.middleware(DataBaseMiddleware())
-    # dp.update.middleware(ShadowBanMiddleware())
-    # dp.update.middleware(ActivityCounterMiddleware())
-    # dp.update.middleware(LangSettingsMiddleware())
+    dp.update.middleware(DatabaseMiddleware(async_session_maker))
+    dp.update.middleware(ShadowBanMiddleware())
+    dp.update.middleware(ActivityCounterMiddleware())
+    dp.update.middleware(LangSettingsMiddleware())
     dp.update.middleware(TranslatorMiddleware())
     
     # Пропускаем накопившиеся апдейты и запускаем polling

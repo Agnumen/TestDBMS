@@ -1,8 +1,6 @@
 import logging
 from contextlib import suppress
 
-from pydantic import create_model, Field
-
 from aiogram import Bot, Router
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest
@@ -10,16 +8,13 @@ from aiogram.filters import KICKED, ChatMemberUpdatedFilter, Command, CommandSta
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, ChatMemberUpdated, Message
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
-from app.infrastructure.database.enums import UserRole
-from app.infrastructure.database.dao.dao import UserDAO
-from app.infrastructure.database.dao.session_maker import connection
-from app.infrastructure.database.schemas import UserCreate, UserUpdate
 
+from app.core.enums import UserRole
+from app.core.schemas import UserCreateDTO, UserUpdateDTO
 
+from app.infrastructure.database import Database
 
 logger = logging.getLogger(__name__)
 
@@ -29,37 +24,53 @@ user_router = Router()
 
 # Этот хэндлер срабатывает на команду /start
 @user_router.message(CommandStart())
-@connection()
 async def process_start_command(
     msg: Message, 
-    session: AsyncSession, 
+    db: Database, 
     bot: Bot, 
     i18n: dict[str, str], 
     state: FSMContext, 
-    admin_ids: list[int],
+    admin_ids: set[int],
     translations: dict
 ):
+    user = await db.user.get_by_id(user_id=msg.from_user.id)
     
-    user = await UserDAO.find_one_or_none(session=session, filters=UserUpdate(user_id=msg.from_user.id))
+    # OLD user = await UserDAO.find_one_or_none(session=session, filters=UserUpdate(user_id=msg.from_user.id))
     if user is None:
-        user_role = UserRole.ADMIN if msg.from_user.id in [admin_ids] else UserRole.USER
+        user_role = UserRole.ADMIN if msg.from_user.id in admin_ids else UserRole.USER
         
-        await UserDAO.add_one(session=session, values=UserCreate(
+        # OLD
+        # await UserDAO.add_one(session=session, values=UserCreate(
+        #     user_id=msg.from_user.id,
+        #     username=msg.from_user.username,
+        #     first_name=msg.from_user.first_name,
+        #     last_name=msg.from_user.last_name,
+        #     language=msg.from_user.language_code or "ru",
+        #     role=user_role
+        # ))
+        
+        await db.user.create_user(user_data=UserCreateDTO(
             user_id=msg.from_user.id,
             username=msg.from_user.username,
             first_name=msg.from_user.first_name,
             last_name=msg.from_user.last_name,
             language=msg.from_user.language_code or "ru",
-            role=user_role
+            role=user_role,
         ))
         
     else:
         
         user_role = UserRole(user.role)
         
-        await UserDAO.update_one_by_id(session=session, 
-            data_id=user.id,
-            values=UserUpdate(is_alive=True)
+        # OLD
+        # await UserDAO.update_one_by_id(session=session, 
+        #     data_id=user.id,
+        #     values=UserUpdate(is_alive=True)
+        # )
+        # NEW
+        await db.user.change_alive_status(
+            user_id=msg.from_user.id,
+            is_alive=True,
         )
         
 
@@ -69,7 +80,10 @@ async def process_start_command(
             msg_id = data.get("lang_settings_msg_id")
             if msg_id:
                 await bot.edit_message_reply_markup(chat_id=msg.from_user.id, message_id=msg_id)
-        user_lang = await UserDAO.get_user_lang(session=session, user_id=msg.from_user.id)
+        # OLD
+        # user_lang = await UserDAO.get_user_lang(session=session, user_id=msg.from_user.id)
+        # NEW
+        user_lang = await db.user.get_user_language(user_id=msg.from_user.id)
         i18n = translations.get(user_lang)
     
     await bot.set_my_commands(
@@ -92,7 +106,16 @@ async def process_help_command(message: Message, i18n: dict[str, str]):
 
 # Этот хэндлер будет срабатывать на блокировку бота пользователем
 @user_router.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=KICKED))
-@connection()
-async def process_user_blocked_bot(event: ChatMemberUpdated, session: AsyncSession):
+async def process_user_blocked_bot(event: ChatMemberUpdated, db: Database):
     logger.info("User %d has blocked the bot", event.from_user.id)
-    await UserDAO.change_user_alive_status(session=session, user_id=event.from_user.id, is_alive=False)
+    # old
+    # await UserDAO.change_user_alive_status(session=session, user_id=event.from_user.id, is_alive=False)
+    
+    # NEW
+    await db.user.change_alive_status(user_id=event.from_user.id, is_alive=False)
+
+
+# Временный хендлер для проверки /del
+@user_router.message(Command(commands="del"))
+async def process_del_command(msg: Message, db: Database):
+    await db.user.delete_user(user_id=msg.from_user.id)

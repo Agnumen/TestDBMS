@@ -1,8 +1,8 @@
-"""Initial revision
+"""Init revision
 
-Revision ID: b4435a050a47
+Revision ID: cad9d565e091
 Revises: 
-Create Date: 2025-08-30 12:06:23.042650
+Create Date: 2025-08-31 20:22:04.940673
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b4435a050a47'
+revision: str = 'cad9d565e091'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('username', sa.String(), nullable=False),
     sa.Column('first_name', sa.String(), nullable=False),
-    sa.Column('last_name', sa.String(), nullable=False),
+    sa.Column('last_name', sa.String(), nullable=True),
     sa.Column('language', sa.String(), nullable=False),
     sa.Column('role', sa.Enum('USER', 'ADMIN', name='userrole'), server_default=sa.text("'USER'"), nullable=False),
     sa.Column('is_alive', sa.Boolean(), server_default=sa.text("'True'"), nullable=False),
@@ -36,13 +36,14 @@ def upgrade() -> None:
     sa.UniqueConstraint('user_id')
     )
     op.create_table('activities',
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('activity_date', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
+    sa.Column('activity_date', sa.Date(), server_default=sa.text('CURRENT_DATE'), nullable=False),
     sa.Column('actions', sa.Integer(), server_default=sa.text("'1'"), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'activity_date', name='idx_activity_user_day')
     )
     # ### end Alembic commands ###
 

@@ -11,12 +11,7 @@ from app.bot.filters.filters import LocaleFilter
 from app.bot.keyboards.keyboards import get_lang_settings_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
-from app.infrastructure.database.db import (
-    get_user_lang,
-    get_user_role,
-    update_user_lang,
-)
-from psycopg import AsyncConnection
+from app.infrastructure.database import Database
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +48,13 @@ async def process_any_message_when_lang(
 @settings_router.message(Command(commands="lang"))
 async def process_lang_command(
     message: Message,
-    conn: AsyncConnection,
+    db: Database,
     i18n: dict[str, str],
     state: FSMContext,
     locales: list[str],
 ):
     await state.set_state(LangSG.lang)
-    user_lang = await get_user_lang(conn, user_id=message.from_user.id)
+    user_lang = await db.user.get_user_language(user_id=message.from_user.id)
 
     msg = await message.answer(
         text=i18n.get("/lang"),
@@ -72,15 +67,15 @@ async def process_lang_command(
 # Этот хэндлер будет срабатывать на нажатие кнопки "Сохранить" в режиме настроек языка
 @settings_router.callback_query(F.data == "save_lang_button_data")
 async def process_save_click(
-    callback: CallbackQuery, bot: Bot, conn: AsyncConnection, i18n: dict[str, str], state: FSMContext
+    callback: CallbackQuery, bot: Bot, db: Database, i18n: dict[str, str], state: FSMContext
 ):
     data = await state.get_data()
-    await update_user_lang(
-        conn, language=data.get("user_lang"), user_id=callback.from_user.id
+    await db.user.update_user_lang(
+        language=data.get("user_lang"), user_id=callback.from_user.id
     )
     await callback.message.edit_text(text=i18n.get("lang_saved"))
     
-    user_role = await get_user_role(conn, user_id=callback.from_user.id)
+    user_role = await db.user.get_user_role(user_id=callback.from_user.id)
     await bot.set_my_commands(
         commands=get_main_menu_commands(i18n=i18n, role=user_role),
         scope=BotCommandScopeChat(
@@ -95,9 +90,9 @@ async def process_save_click(
 # Этот хэнлер будет срабатывать на нажатие кнопки "Отмена" в режиме настроек языка
 @settings_router.callback_query(F.data == "cancel_lang_button_data")
 async def process_cancel_click(
-    callback: CallbackQuery, conn: AsyncConnection, i18n: dict[str, str], state: FSMContext
+    callback: CallbackQuery, db: Database, i18n: dict[str, str], state: FSMContext
 ):
-    user_lang = await get_user_lang(conn, user_id=callback.from_user.id)
+    user_lang = await db.user.get_user_language(user_id=callback.from_user.id)
     await callback.message.edit_text(text=i18n.get("lang_cancelled").format(i18n.get(user_lang)))
     await state.update_data(lang_settings_msg_id=None, user_lang=None)
     await state.set_state()
