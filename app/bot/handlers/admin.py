@@ -67,7 +67,7 @@ async def process_ban_command(
         if arg_user.isdigit():
             await db.user.change_user_banned_status_by_id(user_id=int(arg_user), banned=True)
         else:
-            await db.user.change_user_banned_status_by_username(sername=arg_user[1:], banned=True)
+            await db.user.change_user_banned_status_by_username(username=arg_user[1:], banned=True)
         await message.reply(text=i18n.get('successfully_banned'))
 
 
@@ -86,15 +86,15 @@ async def process_unban_command(
         return
     
     arg_user = args.split()[0].strip()
-    
+    logger.debug(f"{arg_user}")
     if arg_user.isdigit():
         banned_status = await db.user.get_user_banned_status_by_id(user_id=int(arg_user))
     elif arg_user.startswith('@'):
+        logger.warning(f"{arg_user[1:]}")
         banned_status = await db.user.get_user_banned_status_by_username(username=arg_user[1:])
     else:
         await message.reply(text=i18n.get('incorrect_unban_arg'))
         return
-    
     if banned_status is None:
         await message.reply(i18n.get('no_user'))
     elif banned_status:

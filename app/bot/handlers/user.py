@@ -51,7 +51,7 @@ async def process_start_command(
         
         await db.user.create_user(user_data=UserCreateDTO(
             user_id=msg.from_user.id,
-            username=msg.from_user.username,
+            username=msg.from_user.username.lower(),
             first_name=msg.from_user.first_name,
             last_name=msg.from_user.last_name,
             language=msg.from_user.language_code or "ru",
@@ -115,7 +115,8 @@ async def process_user_blocked_bot(event: ChatMemberUpdated, db: Database):
     await db.user.change_alive_status(user_id=event.from_user.id, is_alive=False)
 
 
-# Временный хендлер для проверки /del
-@user_router.message(Command(commands="del"))
-async def process_del_command(msg: Message, db: Database):
-    await db.user.delete_user(user_id=msg.from_user.id)
+# # Временный хендлер для проверки /del
+# @user_router.message(Command(commands="del"))
+# async def process_del_command(msg: Message, db: Database):
+#     await db.user.delete_user(user_id=msg.from_user.id)
+    

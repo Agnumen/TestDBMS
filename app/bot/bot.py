@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
-# from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
