@@ -54,13 +54,18 @@ cd aiogram3_stepik_course/db_echo_bot
 docker compose up -d
 ```
 
-6. Create a virtual environment in the project root and activate it.
+6. Got to project folder:
+
+```bash
+cd /TestDBMS
+```
 
 7. Install the required libraries in the virtual environment with `uv`:
 - 1.
 ```bash
 pip install uv
 ```
+
 - 2.
 ```bash
 uv sync
