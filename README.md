@@ -36,12 +36,13 @@ This project is a **Telegram Echo Bot** powered by `aiogram`, designed to demons
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/kmsint/aiogram3_stepik_course.git
+git clone https://github.com/Agnumen/TestDBMS.git
 ```
-2. Move to the db_echo_bot folder:
+
+2. Move to the project folder:
 
 ```bash
-cd aiogram3_stepik_course/db_echo_bot
+cd /TestDBMS
 ```
 
 3. Create **.env** file and copy the code from **.env.example** file into it.
@@ -54,13 +55,7 @@ cd aiogram3_stepik_course/db_echo_bot
 docker compose up -d
 ```
 
-6. Got to project folder:
-
-```bash
-cd /TestDBMS
-```
-
-7. Install the required libraries in the virtual environment with `uv`:
+6. Install the required libraries in the virtual environment with `uv`:
 - 1.
 ```bash
 pip install uv
