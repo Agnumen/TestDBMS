@@ -114,4 +114,4 @@ Have ideas or issues? Open a GitHub Issue or contact the maintainer.
 
 ## License
 
-This project is licensed under the **MIT License**.
+No license :)
