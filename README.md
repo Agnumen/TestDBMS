@@ -20,9 +20,11 @@ This project is a **Telegram Echo Bot** powered by `aiogram`, designed to demons
 
 ## Tech Stack
 
-- **Python 3.13** — Primary language of the project.
+- **Python 3.11** — Primary language of the project.
 - **aiogram** – Fast and flexible Telegram bot framework for Python.
 - **PostgreSQL** – Relational DB to persist users and their activity.
+- **SQLAlchemy** - Object Relational Mapper
+- **Pydantic** - Data validation
 - **Redis** – FSM storage for aiogram.
 - **pgAdmin** – Visual database management for PostgreSQL.
 - **Docker** — Used to run infrastructure services like PostgreSQL, Redis, and pgAdmin.
